@@ -2,7 +2,8 @@
 // BRANDCUE AI - BACKEND API SERVICE
 // ==========================================
 
-const API_URL = "http://127.0.0.1:8000";
+// LIVE RENDER BACKEND
+const API_URL = "https://brandcue-ai-backend.onrender.com";
 
 
 // ==========================================
@@ -27,14 +28,11 @@ async function handleResponse(response) {
 // ==========================================
 
 export async function submitContent(data) {
-
     const response = await fetch(`${API_URL}/submissions`, {
         method: "POST",
-
         headers: {
             "Content-Type": "application/json"
         },
-
         body: JSON.stringify(data)
     });
 
@@ -47,7 +45,6 @@ export async function submitContent(data) {
 // ==========================================
 
 export async function getSubmissions() {
-
     const response = await fetch(`${API_URL}/submissions`);
 
     return handleResponse(response);
@@ -59,7 +56,6 @@ export async function getSubmissions() {
 // ==========================================
 
 export async function getGuidelines() {
-
     const response = await fetch(`${API_URL}/guidelines`);
 
     return handleResponse(response);
@@ -67,11 +63,10 @@ export async function getGuidelines() {
 
 
 // ==========================================
-// 5. ANALYZE SUBMISSION USING GEMINI AI
+// 5. ANALYZE SUBMISSION USING GROQ AI
 // ==========================================
 
 export async function analyzeSubmission(submissionId) {
-
     const response = await fetch(
         `${API_URL}/analyze/${submissionId}`,
         {
@@ -84,80 +79,69 @@ export async function analyzeSubmission(submissionId) {
 
     return handleResponse(response);
 }
+
+
 // ==========================================
-// GET PENDING HUMAN REVIEWS
+// 6. GET PENDING HUMAN REVIEWS
 // ==========================================
 
 export async function getReviewQueue() {
-  const response = await fetch(`${API_URL}/reviews`);
+    const response = await fetch(`${API_URL}/reviews`);
 
-  if (!response.ok) {
-    throw new Error("Unable to fetch review queue.");
-  }
-
-  return await response.json();
+    return handleResponse(response);
 }
 
 
 // ==========================================
-// APPROVE OR REJECT CONTENT
+// 7. APPROVE OR REJECT CONTENT
 // ==========================================
 
 export async function submitHumanReview(
-  submissionId,
-  decision,
-  reviewerComment
+    submissionId,
+    decision,
+    reviewerComment
 ) {
-  const response = await fetch(
-    `${API_URL}/reviews/${submissionId}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        decision,
-        reviewer_comment: reviewerComment,
-      }),
-    }
-  );
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      data.detail || "Unable to submit human review."
+    const response = await fetch(
+        `${API_URL}/reviews/${submissionId}`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                decision,
+                reviewer_comment: reviewerComment
+            })
+        }
     );
-  }
 
-  return data;
+    return handleResponse(response);
 }
+
+
 // ==========================================
-// GET SUBMISSION HISTORY
+// 8. GET SUBMISSION HISTORY
 // ==========================================
 
 export async function getSubmissionHistory() {
-  const response = await fetch(`${API_URL}/history`);
+    const response = await fetch(`${API_URL}/history`);
 
-  if (!response.ok) {
-    throw new Error("Unable to fetch submission history.");
-  }
-
-  return await response.json();
+    return handleResponse(response);
 }
 
+
+// ==========================================
+// 9. CREATE BRAND GUIDELINE
+// ==========================================
+
 export async function createGuideline(guideline) {
-  const response = await fetch(`${API_URL}/guidelines`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(guideline),
-  });
+    const response = await fetch(`${API_URL}/guidelines`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(guideline)
+    });
 
-  if (!response.ok) {
-    throw new Error("Unable to create brand guideline.");
-  }
-
-  return await response.json();
+    return handleResponse(response);
 }
