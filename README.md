@@ -20,6 +20,20 @@ The platform identifies potential brand guideline violations, explains the issue
 - **Human Review Workflow:** Allows reviewers to approve or reject submissions.
 - **Submission History:** Maintains previous submissions, AI analysis results, and reviewer decisions.
 
+## 📸 Application Screenshots
+
+### 1. Dashboard
+![BrandCue AI Dashboard](docs/screenshots/dashboard.jpg)
+
+### 2. Brand Guidelines
+![Brand Guidelines Management](docs/screenshots/brand-guidelines.jpg)
+
+### 3. Content Checker
+![Content Checker](docs/screenshots/content-checker.jpg)
+
+### 4. Human Review Queue
+![Human Review Queue](docs/screenshots/review-queue.jpg)
+
 ## 🔄 Application Workflow
 
 1. Admin creates approved brand guidelines.
@@ -57,8 +71,7 @@ brandcue-ai/
 │   ├── main.py
 │   ├── ai_service.py
 │   ├── database.py
-│   ├── requirements.txt
-│   └── .env
+│   └── requirements.txt
 │
 ├── frontend/
 │   ├── src/
@@ -68,14 +81,21 @@ brandcue-ai/
 │   ├── package.json
 │   └── index.html
 │
+├── docs/
+│   └── screenshots/
+│       ├── dashboard.jpg
+│       ├── brand-guidelines.jpg
+│       ├── content-checker.jpg
+│       └── review-queue.jpg
+│
 └── README.md
 ```
 
 ## 🚀 Live Demo
 
-**Application:** https://brandcue-ai.vercel.app/
+**Application:** [BrandCue AI](https://brandcue-ai.vercel.app/)
 
-**Backend:** https://brandcue-ai-backend.onrender.com/
+**Backend:** [BrandCue AI Backend](https://brandcue-ai-backend.onrender.com/)
 
 ## ⚙️ Local Installation
 
