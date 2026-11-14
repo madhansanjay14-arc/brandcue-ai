@@ -34,15 +34,16 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "http://localhost:5175",
-    "https://brandcue-ai.vercel.app",
-],
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175",
+        "https://brandcue-ai.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ==========================================
 # 4. REQUEST MODELS
@@ -59,6 +60,7 @@ class ContentCreate(BaseModel):
     title: str = Field(min_length=1, max_length=150)
     content_type: str
     content: str = Field(min_length=1, max_length=10000)
+
 
 class ReviewCreate(BaseModel):
     decision: Literal["approved", "rejected"]
@@ -205,7 +207,7 @@ def get_guidelines():
 
 
 # ==========================================
-# 9. AI CONTENT ANALYSIS
+# 9. AI CONTENT ANALYSIS + COMPLIANCE SCORE
 # ==========================================
 
 @app.post("/analyze/{submission_id}")
@@ -253,7 +255,7 @@ def analyze_submission(submission_id: int):
                 detail="No active brand guidelines available."
             )
 
-        # Send content and guidelines to Gemini
+        # Send content and guidelines to the AI service
         try:
             result = analyze_content(
                 submission["content"],
@@ -279,6 +281,37 @@ def analyze_submission(submission_id: int):
         overall_status = result.get(
             "overall_status",
             "needs_review"
+        )
+
+        # ==========================================
+        # CALCULATE BRAND COMPLIANCE SCORE
+        # ==========================================
+
+        total_guidelines = len(guidelines)
+
+        # ai_service validates that each violation's "rule"
+        # matches an approved guideline title.
+        guideline_titles = {
+            str(guideline.get("title", "")).strip().casefold()
+            for guideline in guidelines
+        }
+
+        violated_guideline_titles = {
+            str(item.get("rule", "")).strip().casefold()
+            for item in violations
+            if str(item.get("rule", "")).strip().casefold()
+            in guideline_titles
+        }
+
+        violated_guidelines = len(violated_guideline_titles)
+        passed_guidelines = max(
+            total_guidelines - violated_guidelines,
+            0
+        )
+
+        compliance_score = round(
+            (passed_guidelines / total_guidelines) * 100,
+            1
         )
 
         # Save AI analysis
@@ -321,7 +354,12 @@ def analyze_submission(submission_id: int):
             "submission_id": submission_id,
             "overall_status": overall_status,
             "summary": result.get("summary", ""),
+            "total_guidelines": total_guidelines,
+            "passed_guidelines": passed_guidelines,
+            "violated_guidelines": violated_guidelines,
+            "compliance_score": compliance_score,
             "violations": violations,
+            "suggestions": suggestions,
             "corrected_content": result.get(
                 "corrected_content", ""
             ),
@@ -357,8 +395,9 @@ def health_check():
         "application": "BrandCue AI"
     }
 
+
 # ==========================================
-# 10. GET SUBMISSIONS AWAITING HUMAN REVIEW
+# 12. GET SUBMISSIONS AWAITING HUMAN REVIEW
 # ==========================================
 
 @app.get("/reviews")
@@ -416,7 +455,7 @@ def get_review_queue():
 
 
 # ==========================================
-# 11. APPROVE OR REJECT SUBMISSION
+# 13. APPROVE OR REJECT SUBMISSION
 # ==========================================
 
 @app.post("/reviews/{submission_id}")
@@ -486,7 +525,7 @@ def submit_human_review(
 
 
 # ==========================================
-# 12. GET SUBMISSION HISTORY
+# 14. GET SUBMISSION HISTORY
 # ==========================================
 
 @app.get("/history")

@@ -636,6 +636,111 @@ function handleNavigation(page) {
                     </p>
                   </div>
 
+                  {/* COMPLIANCE SCORE */}
+<div
+  style={{
+    marginTop: "25px",
+    padding: "22px",
+    border: "1px solid #e2e8f0",
+    borderRadius: "12px",
+    background: "#ffffff",
+  }}
+>
+  <h3>Brand Compliance Score</h3>
+
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      flexWrap: "wrap",
+      gap: "15px",
+      marginTop: "18px",
+    }}
+  >
+    <div>
+      <h1
+        style={{
+          fontSize: "42px",
+          color:
+            analysis.compliance_score >= 80
+              ? "#16a34a"
+              : analysis.compliance_score >= 50
+              ? "#d97706"
+              : "#dc2626",
+          margin: 0,
+        }}
+      >
+        {analysis.compliance_score ?? 0}%
+      </h1>
+
+      <p style={{ color: "#64748b", marginTop: "5px" }}>
+        Overall guideline compliance
+      </p>
+    </div>
+
+    <div style={{ textAlign: "right" }}>
+      <p style={{ color: "#16a34a", marginBottom: "8px" }}>
+        ✓ Passed: {analysis.passed_guidelines ?? 0}
+      </p>
+
+      <p style={{ color: "#dc2626", marginBottom: "8px" }}>
+        ✕ Violations: {analysis.violated_guidelines ?? 0}
+      </p>
+
+      <p style={{ color: "#64748b" }}>
+        Total checked: {analysis.total_guidelines ?? 0}
+      </p>
+    </div>
+  </div>
+
+  {/* PROGRESS BAR */}
+  <div
+    style={{
+      width: "100%",
+      height: "12px",
+      background: "#e2e8f0",
+      borderRadius: "20px",
+      marginTop: "20px",
+      overflow: "hidden",
+    }}
+  >
+    <div
+      style={{
+        width: `${Math.min(
+          100,
+          Math.max(0, Number(analysis.compliance_score) || 0)
+        )}%`,
+        height: "100%",
+        background:
+          analysis.compliance_score >= 80
+            ? "#16a34a"
+            : analysis.compliance_score >= 50
+            ? "#f59e0b"
+            : "#dc2626",
+        borderRadius: "20px",
+        transition: "width 0.5s ease",
+      }}
+    />
+  </div>
+
+  <p
+    style={{
+      marginTop: "12px",
+      color: "#64748b",
+      fontSize: "13px",
+    }}
+  >
+    {analysis.total_guidelines === 0
+      ? "No active guidelines were available for this analysis."
+      : analysis.compliance_score >= 80
+      ? "Good compliance! Most brand guidelines were followed."
+      : analysis.compliance_score >= 50
+      ? "Moderate compliance. Review the detected violations."
+      : "Low compliance. Significant improvements are required."}
+  </p>
+</div>
+
                   {/* VIOLATIONS */}
                   <div style={{ marginTop: "25px" }}>
                     <h3>
