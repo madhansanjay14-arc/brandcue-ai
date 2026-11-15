@@ -528,3 +528,28 @@ footer {
     font-size: 18px;
   }
 }
+/* ==========================================
+   FIX LIGHT / LOW-CONTRAST SECTION HEADINGS
+========================================== */
+
+.main-content h1,
+.main-content h2,
+.main-content h3,
+.main-content h4 {
+  color: #172033 !important;
+  opacity: 1 !important;
+}
+
+/* Card headings */
+.content-card h1,
+.content-card h2,
+.content-card h3,
+.content-card h4 {
+  color: #172033 !important;
+  font-weight: 700;
+}
+
+/* Card descriptions */
+.content-card p {
+  color: #475569;
+}

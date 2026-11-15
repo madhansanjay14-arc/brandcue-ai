@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./App.css";
 import {
   submitContent,
@@ -8,7 +8,8 @@ import {
   getReviewQueue,
   submitHumanReview,
   getSubmissionHistory,
-  createGuideline
+  createGuideline,
+  extractGuidelinesFromPDF
 } from "./services/api";
 
 function App() {
@@ -28,6 +29,16 @@ function App() {
 
   // AI analysis states
   const [analysis, setAnalysis] = useState(null);
+  const analysisResultRef = useRef(null);
+  useEffect(() => {
+  if (analysis && analysisResultRef.current) {
+    analysisResultRef.current.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }
+}, [analysis]);
+  
   const [analysisError, setAnalysisError] = useState("");
 
   // Review Queue states
@@ -47,6 +58,14 @@ const [isLoadingGuidelines, setIsLoadingGuidelines] = useState(false);
 const [guidelineError, setGuidelineError] = useState("");
 const [guidelineSuccess, setGuidelineSuccess] = useState("");
 const [isSavingGuideline, setIsSavingGuideline] = useState(false);
+
+// PDF Guideline Extraction states
+const [pdfFile, setPdfFile] = useState(null);
+const [extractedGuidelines, setExtractedGuidelines] = useState([]);
+const [isExtractingPdf, setIsExtractingPdf] = useState(false);
+const [isSavingExtracted, setIsSavingExtracted] = useState(false);
+const [pdfError, setPdfError] = useState("");
+const [pdfSuccess, setPdfSuccess] = useState("");
 
 const [guidelineForm, setGuidelineForm] = useState({
   title: "",
@@ -285,6 +304,139 @@ async function handleCreateGuideline(event) {
     setGuidelineError(error.message || "Unable to save guideline.");
   } finally {
     setIsSavingGuideline(false);
+  }
+}
+
+// ==========================================
+// EXTRACT GUIDELINES FROM PDF
+// ==========================================
+
+async function handleExtractPdf() {
+  if (!pdfFile) {
+    setPdfError("Please select a PDF file first.");
+    return;
+  }
+
+  if (!pdfFile.name.toLowerCase().endsWith(".pdf")) {
+    setPdfError("Only PDF files are supported.");
+    return;
+  }
+
+  if (pdfFile.size > 10 * 1024 * 1024) {
+    setPdfError("PDF file must be smaller than 10 MB.");
+    return;
+  }
+
+  try {
+    setIsExtractingPdf(true);
+    setPdfError("");
+    setPdfSuccess("");
+    setExtractedGuidelines([]);
+
+    const result = await extractGuidelinesFromPDF(pdfFile);
+
+    setExtractedGuidelines(
+      (result.guidelines || []).map((guideline) => ({
+        ...guideline,
+        selected: true
+      }))
+    );
+
+    setPdfSuccess(
+      `${result.total_extracted} guidelines extracted successfully. Review them before saving.`
+    );
+  } catch (error) {
+    console.error("PDF extraction failed:", error);
+    setPdfError(error.message || "Unable to extract guidelines from PDF.");
+  } finally {
+    setIsExtractingPdf(false);
+  }
+}
+
+// ==========================================
+// EDIT EXTRACTED GUIDELINE
+// ==========================================
+
+function handleExtractedGuidelineChange(index, field, value) {
+  setExtractedGuidelines((previous) =>
+    previous.map((guideline, i) =>
+      i === index ? { ...guideline, [field]: value } : guideline
+    )
+  );
+}
+
+// ==========================================
+// REMOVE EXTRACTED GUIDELINE
+// ==========================================
+
+function handleRemoveExtractedGuideline(index) {
+  setExtractedGuidelines((previous) =>
+    previous.filter((_, i) => i !== index)
+  );
+}
+
+// ==========================================
+// APPROVE AND SAVE EXTRACTED GUIDELINES
+// ==========================================
+
+async function handleSaveExtractedGuidelines() {
+  const selectedGuidelines = extractedGuidelines.filter(
+    (guideline) => guideline.selected
+  );
+
+  if (selectedGuidelines.length === 0) {
+    setPdfError("Please keep at least one guideline to save.");
+    return;
+  }
+
+  const invalidGuideline = selectedGuidelines.find(
+    (guideline) =>
+      !guideline.title?.trim() ||
+      !guideline.category?.trim() ||
+      !guideline.rule?.trim()
+  );
+
+  if (invalidGuideline) {
+    setPdfError("Please complete the title, category and rule fields.");
+    return;
+  }
+
+  let savedCount = 0;
+
+try {
+  setIsSavingExtracted(true);
+  setPdfError("");
+  setPdfSuccess("");
+
+    for (const guideline of selectedGuidelines) {
+      await createGuideline({
+        title: guideline.title.trim(),
+        category: guideline.category.trim(),
+        rule: guideline.rule.trim(),
+        description: (guideline.description || "").trim()
+      });
+
+      savedCount++;
+    }
+
+    setPdfSuccess(
+      `${savedCount} brand guidelines saved successfully!`
+    );
+
+    setExtractedGuidelines([]);
+    setPdfFile(null);
+
+    await loadGuidelines();
+  } catch (error) {
+    console.error("Saving extracted guidelines failed:", error);
+
+    setPdfError(
+      `${error.message || "Unable to save guidelines."} ${savedCount} guideline(s) were saved before the error.`
+    );
+
+    await loadGuidelines();
+  } finally {
+    setIsSavingExtracted(false);
   }
 }
   // ==========================================
@@ -599,7 +751,11 @@ function handleNavigation(page) {
 
               {/* AI ANALYSIS RESULTS */}
               {analysis && (
-                <div className="content-card" style={{ marginTop: "25px" }}>
+  <div
+    ref={analysisResultRef}
+    className="content-card"
+    style={{ marginTop: "25px", scrollMarginTop: "25px" }}
+  >
                   <div className="section-heading">
                     <div>
                       <h2>✦ BrandCue AI Analysis</h2>
@@ -1060,6 +1216,266 @@ function handleNavigation(page) {
       </p>
     </div>
 
+        {/* PDF GUIDELINE EXTRACTION */}
+    <div
+      style={{
+        background: "#f0f7ff",
+        border: "1px solid #bfdbfe",
+        borderRadius: "12px",
+        padding: "22px",
+        marginBottom: "28px"
+      }}
+    >
+      <h3>✦ Extract Guidelines from PDF using AI</h3>
+
+      <p style={{ color: "#64748b", marginTop: "8px" }}>
+        Upload your brand guideline PDF. AI will identify rules
+        and prepare them for your approval.
+      </p>
+
+      <input
+        type="file"
+        accept=".pdf,application/pdf"
+        onChange={(e) => {
+          setPdfFile(e.target.files?.[0] || null);
+          setPdfError("");
+          setPdfSuccess("");
+          setExtractedGuidelines([]);
+        }}
+        disabled={isExtractingPdf || isSavingExtracted}
+        style={{
+          display: "block",
+          marginTop: "18px",
+          marginBottom: "15px"
+        }}
+      />
+
+      {pdfFile && (
+        <p style={{ color: "#475569", fontSize: "13px" }}>
+          Selected: {pdfFile.name}
+        </p>
+      )}
+
+      <button
+        type="button"
+        onClick={handleExtractPdf}
+        disabled={!pdfFile || isExtractingPdf || isSavingExtracted}
+        style={{
+          padding: "12px 20px",
+          border: "none",
+          borderRadius: "8px",
+          background: "#2563eb",
+          color: "#ffffff",
+          fontWeight: "600",
+          cursor: "pointer"
+        }}
+      >
+        {isExtractingPdf ? "✦ Extracting..." : "✦ Extract Guidelines"}
+      </button>
+
+      {pdfError && (
+        <p role="alert" style={{ color: "#dc2626", marginTop: "14px" }}>
+          {pdfError}
+        </p>
+      )}
+
+      {pdfSuccess && (
+        <p role="status" style={{ color: "#15803d", marginTop: "14px" }}>
+          {pdfSuccess}
+        </p>
+      )}
+
+      {extractedGuidelines.length > 0 && (
+        <div style={{ marginTop: "25px" }}>
+          <h3>Review Extracted Guidelines</h3>
+
+          <p style={{ color: "#64748b", marginTop: "6px" }}>
+            Edit the extracted rules, uncheck unwanted ones,
+            or remove them before saving.
+          </p>
+
+          {extractedGuidelines.map((item, index) => (
+            <div
+              key={index}
+              style={{
+                background: "#ffffff",
+                border: "1px solid #dbeafe",
+                borderRadius: "10px",
+                padding: "18px",
+                marginTop: "15px"
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: "10px"
+                }}
+              >
+                <label style={{ fontWeight: "600" }}>
+                  <input
+                    type="checkbox"
+                    checked={item.selected}
+                    onChange={(e) =>
+                      handleExtractedGuidelineChange(
+                        index,
+                        "selected",
+                        e.target.checked
+                      )
+                    }
+                    disabled={isSavingExtracted}
+                    style={{ marginRight: "8px" }}
+                  />
+                  Include this guideline
+                </label>
+
+                <button
+                  type="button"
+                  onClick={() => handleRemoveExtractedGuideline(index)}
+                  disabled={isSavingExtracted}
+                  style={{
+                    border: "none",
+                    background: "#fee2e2",
+                    color: "#b91c1c",
+                    padding: "7px 12px",
+                    borderRadius: "6px",
+                    cursor: "pointer"
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+
+              <div style={{ marginTop: "15px" }}>
+                <label>Guideline Title</label>
+                <input
+                  type="text"
+                  value={item.title}
+                  onChange={(e) =>
+                    handleExtractedGuidelineChange(
+                      index,
+                      "title",
+                      e.target.value
+                    )
+                  }
+                  disabled={isSavingExtracted}
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "11px",
+                    marginTop: "7px",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "7px"
+                  }}
+                />
+              </div>
+
+              <div style={{ marginTop: "15px" }}>
+                <label>Category</label>
+                <input
+                  type="text"
+                  value={item.category}
+                  onChange={(e) =>
+                    handleExtractedGuidelineChange(
+                      index,
+                      "category",
+                      e.target.value
+                    )
+                  }
+                  disabled={isSavingExtracted}
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "11px",
+                    marginTop: "7px",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "7px"
+                  }}
+                />
+              </div>
+
+              <div style={{ marginTop: "15px" }}>
+                <label>Brand Rule</label>
+                <textarea
+                  value={item.rule}
+                  onChange={(e) =>
+                    handleExtractedGuidelineChange(
+                      index,
+                      "rule",
+                      e.target.value
+                    )
+                  }
+                  rows={3}
+                  disabled={isSavingExtracted}
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "11px",
+                    marginTop: "7px",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "7px",
+                    resize: "vertical"
+                  }}
+                />
+              </div>
+
+              <div style={{ marginTop: "15px" }}>
+                <label>Description</label>
+                <textarea
+                  value={item.description || ""}
+                  onChange={(e) =>
+                    handleExtractedGuidelineChange(
+                      index,
+                      "description",
+                      e.target.value
+                    )
+                  }
+                  rows={2}
+                  disabled={isSavingExtracted}
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "11px",
+                    marginTop: "7px",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "7px",
+                    resize: "vertical"
+                  }}
+                />
+              </div>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={handleSaveExtractedGuidelines}
+            disabled={
+              isSavingExtracted ||
+              extractedGuidelines.length === 0
+            }
+            style={{
+              marginTop: "20px",
+              padding: "13px 22px",
+              border: "none",
+              borderRadius: "8px",
+              background: "#15803d",
+              color: "#ffffff",
+              fontWeight: "600",
+              cursor: "pointer"
+            }}
+          >
+            {isSavingExtracted
+              ? "Saving Guidelines..."
+              : `✓ Approve & Save Selected (${
+                  extractedGuidelines.filter((item) => item.selected).length
+                })`}
+          </button>
+        </div>
+      )}
+    </div>
+
     {/* ADD GUIDELINE FORM */}
     <div style={{
       background: "#f8fafc",
@@ -1309,12 +1725,16 @@ function handleNavigation(page) {
         onClick={loadHistory}
         disabled={isLoadingHistory}
         style={{
-          padding: "10px 18px",
-          borderRadius: "8px",
-          border: "1px solid #cbd5e1",
-          background: "#ffffff",
-          cursor: "pointer"
-        }}
+  padding: "10px 18px",
+  minWidth: "100px",
+  borderRadius: "8px",
+  border: "1px solid #cbd5e1",
+  background: "#ffffff",
+  color: "#172033",
+  fontWeight: "600",
+  fontSize: "12px",
+  cursor: "pointer"
+}}
       >
         {isLoadingHistory ? "Refreshing..." : "↻ Refresh"}
       </button>

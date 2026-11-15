@@ -3,48 +3,57 @@
 
 **BrandCue AI** is an AI-powered brand compliance platform that helps organizations maintain consistent brand communication by checking submitted content against approved brand guidelines.
 
+It combines Large Language Model (LLM) powered content analysis, automated guideline extraction, compliance scoring, and human review to help organizations produce consistent and trustworthy brand communications.
+
+---
+
 ## 🌟 Overview
 
-Organizations often struggle to maintain consistent brand messaging across different creators, marketing teams, and content channels.
+Organizations often struggle to maintain consistent brand messaging across different creators, marketing teams, and communication channels.
 
-BrandCue AI addresses this problem by combining AI-powered content analysis with human review.
+BrandCue AI addresses this challenge by allowing organizations to define approved brand guidelines and automatically evaluate submitted content against those rules.
 
-The platform identifies potential brand guideline violations, explains the issues, suggests corrections, and allows human reviewers to make the final decision.
+The platform identifies potential violations, explains the issues, suggests corrections, calculates a compliance score, and allows human reviewers to make the final decision.
 
 ## 🎯 Key Features
 
-- **AI-Powered Content Analysis:** Analyzes submitted content against approved brand guidelines.
-- **Brand Guidelines Management:** Allows administrators to create and manage brand rules.
+- **AI-Powered Content Analysis:** Analyses submitted content against approved brand guidelines.
+- **Brand Guidelines Management:** Create and manage brand rules across different categories.
+- **AI-Powered PDF Extraction:** Upload brand guideline PDFs and automatically extract editable rules using AI.
 - **Violation Detection:** Identifies content that may violate brand policies.
-- **Correction Suggestions:** Provides suggestions to improve submitted content.
-- **Human Review Workflow:** Allows reviewers to approve or reject submissions.
+- **Correction Suggestions:** Provides explanations and suggestions to improve submitted content.
+- **Brand Compliance Score:** Calculates an overall compliance score based on passed and violated guidelines.
+- **Human Review Workflow:** Allows reviewers to approve or reject submissions with comments.
 - **Submission History:** Maintains previous submissions, AI analysis results, and reviewer decisions.
 
-## 📸 Application Screenshots
+## 📸 Application Highlights
 
-### 1. Dashboard
-![BrandCue AI Dashboard](docs/screenshots/dashboard.jpg)
+### 1. AI-Powered Guideline Extraction
 
-### 2. Brand Guidelines
-![Brand Guidelines Management](docs/screenshots/brand-guidelines.jpg)
+![PDF Extraction](./docs/screenshots/pdf-extraction.png)
 
-### 3. Content Checker
-![Content Checker](docs/screenshots/content-checker.jpg)
+### 2. AI-Powered Content Analysis
 
-### 4. Human Review Queue
-![Human Review Queue](docs/screenshots/review-queue.jpg)
+![AI Analysis](./docs/screenshots/ai-analysis.png)
+
+### 3. Human Review Workflow
+
+![Review Queue](./docs/screenshots/review-queue.png)
 
 ## 🔄 Application Workflow
 
-1. Admin creates approved brand guidelines.
-2. Creator submits content for verification.
-3. AI analyzes the content using the configured guidelines.
-4. The system identifies violations and generates correction suggestions.
-5. Human reviewer reviews the results.
-6. Reviewer approves or rejects the submission.
-7. Results are available in submission history.
+1. Administrator creates brand guidelines manually or uploads a PDF.
+2. AI extracts guidelines from the uploaded document.
+3. Administrator reviews and approves the extracted rules.
+4. Creator submits marketing content for verification.
+5. Backend retrieves the active brand guidelines.
+6. AI analyses the submitted content against the guidelines.
+7. System identifies violations and generates correction suggestions.
+8. Brand compliance score is calculated.
+9. Human reviewer examines the findings and makes the final decision.
+10. Submission and review information are available in history.
 
-**Important:** AI analysis supports the review process. Final approval remains with a human reviewer.
+**Important:** AI analysis is advisory. Final approval remains with a human reviewer.
 
 ## 🛠️ Technology Stack
 
@@ -55,14 +64,56 @@ The platform identifies potential brand guideline violations, explains the issue
 | Backend | Python |
 | API Framework | FastAPI |
 | Database | SQLite |
-| AI Integration | Groq |
+| AI Provider | Groq |
 | AI Model | openai/gpt-oss-120b |
 | PDF Processing | PyMuPDF |
 | Frontend Deployment | Vercel |
 | Backend Deployment | Render |
 | Version Control | Git & GitHub |
 
-## 🏗️ Project Structure
+## 🏗️ System Architecture
+
+```text
+             USER
+               |
+               v
+       REACT + VITE FRONTEND
+               |
+          HTTP Requests
+               |
+               v
+        PYTHON FASTAPI
+               |
+       +-------+--------+
+       |                |
+       v                v
+   SQLITE DATABASE   GROQ API
+       |                |
+       |          LLM ANALYSIS
+       |                |
+       +-------+--------+
+               |
+               v
+       ANALYSIS RESULTS
+               |
+       +-------+--------+
+       |                |
+       v                v
+ COMPLIANCE SCORE   CORRECTIONS
+       |                |
+       +-------+--------+
+               |
+               v
+        HUMAN REVIEW
+               |
+               v
+       APPROVE / REJECT
+               |
+               v
+       SUBMISSION HISTORY
+```
+
+## 📂 Project Structure
 
 ```text
 brandcue-ai/
@@ -71,11 +122,13 @@ brandcue-ai/
 │   ├── main.py
 │   ├── ai_service.py
 │   ├── database.py
-│   └── requirements.txt
+│   ├── requirements.txt
+│   └── .env
 │
 ├── frontend/
 │   ├── src/
 │   │   ├── App.jsx
+│   │   ├── App.css
 │   │   └── services/
 │   │       └── api.js
 │   ├── package.json
@@ -83,19 +136,23 @@ brandcue-ai/
 │
 ├── docs/
 │   └── screenshots/
-│       ├── dashboard.jpg
-│       ├── brand-guidelines.jpg
-│       ├── content-checker.jpg
-│       └── review-queue.jpg
+│       ├── ai-analysis.png
+│       ├── pdf-extraction.png
+│       └── review-queue.png
 │
+├── .gitignore
 └── README.md
 ```
 
 ## 🚀 Live Demo
 
-**Application:** [BrandCue AI](https://brandcue-ai.vercel.app/)
+**Application:** https://brandcue-ai.vercel.app/
 
-**Backend:** [BrandCue AI Backend](https://brandcue-ai-backend.onrender.com/)
+**Backend:** https://brandcue-ai-backend.onrender.com/
+
+**Backend Health Check:** https://brandcue-ai-backend.onrender.com/health
+
+**GitHub Repository:** https://github.com/madhansanjay14-arc/brandcue-ai
 
 ## ⚙️ Local Installation
 
@@ -110,6 +167,7 @@ brandcue-ai/
 
 ```bash
 git clone https://github.com/madhansanjay14-arc/brandcue-ai.git
+
 cd brandcue-ai
 ```
 
@@ -117,6 +175,7 @@ cd brandcue-ai
 
 ```bash
 cd backend
+
 python -m venv .venv
 ```
 
@@ -141,14 +200,14 @@ GROQ_API_KEY=your_groq_api_key
 Start the backend:
 
 ```bash
-uvicorn main:app --reload
+python -m uvicorn main:app --reload
 ```
 
-Backend runs at:
+Backend URL:
 
 `http://127.0.0.1:8000`
 
-API documentation:
+Interactive API documentation:
 
 `http://127.0.0.1:8000/docs`
 
@@ -158,11 +217,15 @@ Open another terminal:
 
 ```bash
 cd frontend
+
 npm install
+
 npm run dev
 ```
 
-Open the local frontend URL displayed in your terminal.
+The frontend runs at the local URL displayed in your terminal.
+
+**Local development note:** Configure the frontend API base URL in `frontend/src/services/api.js` to point to `http://127.0.0.1:8000` when running the local backend.
 
 ## 🔌 Main API Endpoints
 
@@ -174,35 +237,7 @@ Open the local frontend URL displayed in your terminal.
 | GET | `/submissions` | Retrieve submissions |
 | POST | `/guidelines` | Create brand guidelines |
 | GET | `/guidelines` | Retrieve guidelines |
-| POST | `/analyze/{submission_id}` | Analyze submitted content |
-| GET | `/reviews` | Retrieve review queue |
-| POST | `/reviews/{submission_id}` | Submit human review |
-| GET | `/history` | Retrieve submission history |
-
-## 🔐 Security Notes
-
-- Keep API keys in environment variables.
-- Never upload `.env` files or API credentials to GitHub.
-- Do not expose private credentials in frontend code.
-
-## 🔮 Future Enhancements
-
-Potential improvements include:
-
-- PDF and document guideline ingestion.
-- Support for additional content formats.
-- Advanced brand consistency analytics.
-- User authentication and role-based access control.
-- Detailed compliance reports.
-- Multi-brand workspace management.
-
-## 👨‍💻 Contributors
-
-**Project developed for CodeNova India 2026.**
-
-- Madhan Sanjay S
-- Project team contributors
-
-## 📄 License
-
-This project is currently developed as a hackathon project. Licensing terms can be added when finalized.
+| POST | `/guidelines/extract-pdf` | Extract guidelines from PDF |
+| POST | `/analyze/{submission_id}` | Analyse submitted content |
+| GET | `/reviews` | Retrieve pending reviews |
+| POST | `/reviews/{submission_id}` | Submit human review

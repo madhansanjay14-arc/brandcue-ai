@@ -1,12 +1,12 @@
 import json
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Literal
 
 from database import get_connection, init_db
-from ai_service import analyze_content
+from ai_service import analyze_content, extract_guidelines_from_pdf
 
 
 # ==========================================
@@ -591,3 +591,81 @@ def get_submission_history():
 
     finally:
         connection.close()
+
+# ==========================================
+# 15. EXTRACT BRAND GUIDELINES FROM PDF
+# ==========================================
+
+@app.post("/guidelines/extract-pdf")
+async def extract_guidelines_pdf(
+    file: UploadFile = File(...)
+):
+    """
+    Upload a brand guideline PDF and extract
+    structured rules using BrandCue AI.
+
+    Extracted guidelines are returned for review.
+    They are NOT automatically saved.
+    """
+
+    # Validate filename
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(
+            status_code=400,
+            detail="Please upload a valid PDF file."
+        )
+
+    # Validate content type
+    if file.content_type != "application/pdf":
+        raise HTTPException(
+            status_code=400,
+            detail="Only PDF files are supported."
+        )
+
+    # Read uploaded file
+    pdf_bytes = await file.read()
+
+    # Limit upload size to 10 MB
+    if len(pdf_bytes) > 10 * 1024 * 1024:
+        raise HTTPException(
+            status_code=413,
+            detail="PDF file must be smaller than 10 MB."
+        )
+
+    if not pdf_bytes:
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded PDF is empty."
+        )
+
+    # Check PDF signature
+    if not pdf_bytes.startswith(b"%PDF-"):
+        raise HTTPException(
+            status_code=400,
+            detail="The uploaded file is not a valid PDF."
+        )
+
+    try:
+        result = extract_guidelines_from_pdf(pdf_bytes)
+
+        if not result.get("guidelines"):
+            raise HTTPException(
+                status_code=422,
+                detail="No brand guidelines could be extracted from this PDF."
+            )
+
+        return result
+
+    except HTTPException:
+        raise
+
+    except Exception as error:
+        print("PDF extraction error:", error)
+
+        raise HTTPException(
+            status_code=503,
+            detail="Unable to extract guidelines. Please try again."
+        )
+
+    finally:
+        await file.close()

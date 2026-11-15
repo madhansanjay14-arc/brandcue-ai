@@ -145,3 +145,23 @@ export async function createGuideline(guideline) {
 
     return handleResponse(response);
 }
+
+// ==========================================
+// 10. EXTRACT BRAND GUIDELINES FROM PDF
+// ==========================================
+
+export async function extractGuidelinesFromPDF(file) {
+    const formData = new FormData();
+
+    formData.append("file", file);
+
+    const response = await fetch(
+        `${API_URL}/guidelines/extract-pdf`,
+        {
+            method: "POST",
+            body: formData
+        }
+    );
+
+    return handleResponse(response);
+}
