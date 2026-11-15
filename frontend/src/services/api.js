@@ -2,98 +2,107 @@
 // BRANDCUE AI - BACKEND API SERVICE
 // ==========================================
 
-// LIVE RENDER BACKEND
+// Keep the deployed frontend connected to the deployed Render backend.
 const API_URL = "https://brandcue-ai-backend.onrender.com";
 
-
-// ==========================================
-// 1. COMMON API RESPONSE HANDLER
-// ==========================================
-
 async function handleResponse(response) {
-    const data = await response.json();
+    const contentType = response.headers.get("content-type") || "";
+    let data;
+
+    if (contentType.includes("application/json")) {
+        data = await response.json();
+    } else {
+        const text = await response.text();
+        data = {
+            detail: text || "The server returned an unexpected response."
+        };
+    }
 
     if (!response.ok) {
         throw new Error(
-            data.detail || "Something went wrong with the server."
+            data.detail || `Server request failed (${response.status}).`
         );
     }
 
     return data;
 }
 
+// Centralized fetch wrapper
+async function apiRequest(path, options = {}) {
+    let response;
+
+    try {
+        response = await fetch(`${API_URL}${path}`, options);
+    } catch (error) {
+        console.error(`Network request failed for ${path}:`, error);
+
+        if (!navigator.onLine) {
+            throw new Error(
+                "You appear to be offline. Connect to the internet and try again."
+            );
+        }
+
+        throw new Error(
+            "Could not connect to the BrandCue AI server. Check your internet connection and try again. If this happens only on mobile, check that your browser allows this site to access the network."
+        );
+    }
+
+    return handleResponse(response);
+}
 
 // ==========================================
-// 2. SUBMIT CONTENT
+// 1. SUBMIT CONTENT
 // ==========================================
 
 export async function submitContent(data) {
-    const response = await fetch(`${API_URL}/submissions`, {
+    return apiRequest("/submissions", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
         },
         body: JSON.stringify(data)
     });
-
-    return handleResponse(response);
 }
 
-
 // ==========================================
-// 3. GET ALL SUBMISSIONS
+// 2. GET ALL SUBMISSIONS
 // ==========================================
 
 export async function getSubmissions() {
-    const response = await fetch(`${API_URL}/submissions`);
-
-    return handleResponse(response);
+    return apiRequest("/submissions");
 }
 
-
 // ==========================================
-// 4. GET BRAND GUIDELINES
+// 3. GET BRAND GUIDELINES
 // ==========================================
 
 export async function getGuidelines() {
-    const response = await fetch(`${API_URL}/guidelines`);
-
-    return handleResponse(response);
+    return apiRequest("/guidelines");
 }
 
-
 // ==========================================
-// 5. ANALYZE SUBMISSION USING GROQ AI
+// 4. ANALYZE SUBMISSION USING GROQ AI
 // ==========================================
 
 export async function analyzeSubmission(submissionId) {
-    const response = await fetch(
-        `${API_URL}/analyze/${submissionId}`,
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            }
+    return apiRequest(`/analyze/${submissionId}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
         }
-    );
-
-    return handleResponse(response);
+    });
 }
 
-
 // ==========================================
-// 6. GET PENDING HUMAN REVIEWS
+// 5. GET PENDING HUMAN REVIEWS
 // ==========================================
 
 export async function getReviewQueue() {
-    const response = await fetch(`${API_URL}/reviews`);
-
-    return handleResponse(response);
+    return apiRequest("/reviews");
 }
 
-
 // ==========================================
-// 7. APPROVE OR REJECT CONTENT
+// 6. APPROVE OR REJECT CONTENT
 // ==========================================
 
 export async function submitHumanReview(
@@ -101,67 +110,62 @@ export async function submitHumanReview(
     decision,
     reviewerComment
 ) {
-    const response = await fetch(
-        `${API_URL}/reviews/${submissionId}`,
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                decision,
-                reviewer_comment: reviewerComment
-            })
-        }
-    );
-
-    return handleResponse(response);
+    return apiRequest(`/reviews/${submissionId}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            decision,
+            reviewer_comment: reviewerComment
+        })
+    });
 }
 
-
 // ==========================================
-// 8. GET SUBMISSION HISTORY
+// 7. GET SUBMISSION HISTORY
 // ==========================================
 
 export async function getSubmissionHistory() {
-    const response = await fetch(`${API_URL}/history`);
-
-    return handleResponse(response);
+    return apiRequest("/history");
 }
 
-
 // ==========================================
-// 9. CREATE BRAND GUIDELINE
+// 8. CREATE BRAND GUIDELINE
 // ==========================================
 
 export async function createGuideline(guideline) {
-    const response = await fetch(`${API_URL}/guidelines`, {
+    return apiRequest("/guidelines", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
         },
         body: JSON.stringify(guideline)
     });
-
-    return handleResponse(response);
 }
 
 // ==========================================
-// 10. EXTRACT BRAND GUIDELINES FROM PDF
+// 9. EXTRACT BRAND GUIDELINES FROM PDF
 // ==========================================
 
 export async function extractGuidelinesFromPDF(file) {
+    if (!file) {
+        throw new Error("Please select a PDF file first.");
+    }
+
     const formData = new FormData();
 
-    formData.append("file", file);
-
-    const response = await fetch(
-        `${API_URL}/guidelines/extract-pdf`,
-        {
-            method: "POST",
-            body: formData
-        }
+    formData.append(
+        "file",
+        file,
+        file.name || "brand-guidelines.pdf"
     );
 
-    return handleResponse(response);
+    // IMPORTANT:
+    // Do not manually set Content-Type for FormData.
+    // The browser automatically adds the multipart boundary.
+    return apiRequest("/guidelines/extract-pdf", {
+        method: "POST",
+        body: formData
+    });
 }

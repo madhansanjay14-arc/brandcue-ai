@@ -349,18 +349,57 @@ const existingGuidelinesRef = useRef(null);
   }
 
   // ==========================================
+  // GUIDELINE DUPLICATE CHECK
+  // ==========================================
+
+  function normalizeGuidelineValue(value) {
+    return (value || "")
+      .normalize("NFKC")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, " ");
+  }
+
+  function isDuplicateGuideline(candidate, existingGuidelines = []) {
+    const candidateTitle = normalizeGuidelineValue(candidate.title);
+    const candidateCategory = normalizeGuidelineValue(candidate.category);
+    const candidateRule = normalizeGuidelineValue(candidate.rule);
+
+    return existingGuidelines.some((existing) =>
+      normalizeGuidelineValue(existing.title) === candidateTitle &&
+      normalizeGuidelineValue(existing.category) === candidateCategory &&
+      normalizeGuidelineValue(existing.rule) === candidateRule
+    );
+  }
+
+  // ==========================================
   // CREATE MANUAL GUIDELINE
   // ==========================================
 
   async function handleCreateGuideline(event) {
     event.preventDefault();
 
+    const candidate = {
+      title: guidelineForm.title.trim(),
+      category: guidelineForm.category.trim(),
+      rule: guidelineForm.rule.trim(),
+      description: (guidelineForm.description || "").trim()
+    };
+
+    if (isDuplicateGuideline(candidate, guidelines)) {
+      setGuidelineError(
+        "This brand guideline already exists in your library. Edit the existing rule instead of adding it again."
+      );
+      setGuidelineSuccess("");
+      return;
+    }
+
     try {
       setIsSavingGuideline(true);
       setGuidelineError("");
       setGuidelineSuccess("");
 
-      await createGuideline(guidelineForm);
+      await createGuideline(candidate);
 
       setGuidelineSuccess(
         "Brand guideline added successfully!"
@@ -445,7 +484,8 @@ const existingGuidelinesRef = useRef(null);
       console.error("PDF extraction failed:", error);
 
       setPdfError(
-        error.message || "Unable to extract guidelines from PDF."
+        error.message ||
+          "PDF upload failed. Check your internet connection and try again. If the problem continues, the backend may be temporarily unavailable."
       );
     } finally {
       setIsExtractingPdf(false);
@@ -505,26 +545,44 @@ const existingGuidelinesRef = useRef(null);
     }
 
     let savedCount = 0;
+    let skippedCount = 0;
 
     try {
       setIsSavingExtracted(true);
       setPdfError("");
       setPdfSuccess("");
 
+      // Compare against the current library and also against rules
+      // already accepted earlier in this same PDF save operation.
+      const knownGuidelines = [...guidelines];
+
       for (const guideline of selectedGuidelines) {
-        await createGuideline({
+        const candidate = {
           title: guideline.title.trim(),
           category: guideline.category.trim(),
           rule: guideline.rule.trim(),
           description: (guideline.description || "").trim()
-        });
+        };
 
+        if (isDuplicateGuideline(candidate, knownGuidelines)) {
+          skippedCount++;
+          continue;
+        }
+
+        await createGuideline(candidate);
+        knownGuidelines.push(candidate);
         savedCount++;
       }
 
-      setPdfSuccess(
-        `${savedCount} brand guidelines saved successfully!`
-      );
+      if (savedCount === 0) {
+        setPdfSuccess(
+          `No new guidelines were added. ${skippedCount} duplicate guideline(s) were skipped.`
+        );
+      } else {
+        setPdfSuccess(
+          `${savedCount} new guideline(s) saved successfully. ${skippedCount} duplicate(s) skipped.`
+        );
+      }
 
       setExtractedGuidelines([]);
       setPdfFile(null);

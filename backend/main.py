@@ -615,12 +615,9 @@ async def extract_guidelines_pdf(
             detail="Please upload a valid PDF file."
         )
 
-    # Validate content type
-    if file.content_type != "application/pdf":
-        raise HTTPException(
-            status_code=400,
-            detail="Only PDF files are supported."
-        )
+    # Mobile browsers and some file providers may send an empty or generic
+    # MIME type (for example application/octet-stream). Do not reject based
+    # on content_type alone; validate the actual PDF signature below.
 
     # Read uploaded file
     pdf_bytes = await file.read()
